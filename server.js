@@ -2,17 +2,17 @@
 //  Configuration settings to communicate with the radio
 // 
 var program = "/usr/local/bin/rigctl"
-var radio = 2;
-var device = "localhost";
+var radio = 4;
+// var device = "localhost";
+var device = "";
 //
 //**********************************************************************
 
 var http_port = 3000;
-var express = require("express");
-var http = require("http");
-var app = express();
-var server = http.createServer(app);
-var io = require("socket.io").listen(server);
+
+var app = require("express")();
+var http = require("http").Server(app);
+var io = require("socket.io")(http);
 
 var spawn = require("child_process").spawn;
 var child = spawn;
@@ -37,7 +37,7 @@ app.get("/display.js", function(req, res) {
 	res.sendFile(__dirname + "/display.js");
 });
 
-server.listen(http_port, function(){
+http.listen(http_port, function(){
 	console.log("Node.JS Socket.IO server running on :" + http_port);
 });
 
@@ -46,7 +46,7 @@ io.on("connection", function(s){
 
 	s.on("command", function(msg){
 		// Debug code
-		//console.log(address + ": " + msg);
+		console.log(address + ": " + msg);
 		// Process command received from web
 		radioCmd(msg);
 		var read = msg.split(" ")[0].toLowerCase();
@@ -55,7 +55,7 @@ io.on("connection", function(s){
 		}
 	});
 	// Debug code
-	//console.log("Connected to: " + address);
+	console.log("Connected to: " + address);
 	// Send data on conection
 	radioCmd("f");
 	radioCmd("m");
@@ -78,7 +78,11 @@ setInterval(function() {
 function radioCmd(cmd) {
 	var resp = "";
 	cmd = cmd.trim();
-	var args = "-m " + radio + " -r " + device + " " + cmd; 
+	var args = "-m " + radio;
+	if (device != "") {
+		args = args + " -r " + device;
+	}
+	args = args + " " + cmd; 
 	args = args.trim();
 
 	args = args.split(" ");
@@ -91,7 +95,7 @@ function radioCmd(cmd) {
 	});
 
 	child.stderr.on("data", function(data) {
-			//console.log(data.toString("utf8"));
+			console.log(data.toString("utf8"));
 	});
 
 	child.on("close", function() {
@@ -134,27 +138,27 @@ function radioCmd(cmd) {
 function sendUpdate() {
 	if (f.freq > 0) {
 		f.freq = 0;
-		//console.log("FREQ " + c.freq);
+		console.log("FREQ " + c.freq);
 		io.emit("command", "FREQ " + c.freq);
 	}
 	if (f.mode > 0) {
 		f.mode = 0;
-		//console.log("MODE " + c.mode);
+		console.log("MODE " + c.mode);
 		io.emit("command", "MODE " + c.mode);
 	}
 	if (f.sql > 0) {
 		f.sql = 0;
-		//console.log("SQL " + c.sql);
+		console.log("SQL " + c.sql);
 		io.emit("command", "SQL " + c.sql);
 	}
 	if (f.sig > 0) {
 		f.sig = 0;
-		//console.log("SIG " + c.sig);
+		console.log("SIG " + c.sig);
 		io.emit("command", "SIG " + c.sig);
 	}
 	if (f.lvl > 0) {
 		f.lvl = 0;
-		//console.log("AF " + c.lvl);
+		console.log("AF " + c.lvl);
 		io.emit("command", "AF " + c.lvl);
 	}
 }
